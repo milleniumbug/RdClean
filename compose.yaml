@@ -1,0 +1,7 @@
+﻿services:
+  rdclean:
+    image: rdclean
+    build:
+      context: .
+      dockerfile: RdClean/Dockerfile
+

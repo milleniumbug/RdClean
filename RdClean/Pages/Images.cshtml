@@ -1,0 +1,209 @@
+﻿@page
+@model ImageModel
+@{
+    ViewData["Title"] = "Image";
+}
+
+<div>
+    @if (Model.Image != null)
+    {
+        <div id="redraw-areas" style="visibility: hidden">
+            @foreach (var redraw in Model.Image.Redraws)
+            {
+                <span data-x="@redraw.X" data-y="@redraw.Y" data-width="@redraw.Width" data-height="@redraw.Height"
+                      data-isready="@redraw.IsReady.ToString().ToLowerInvariant()" data-redraw-id="@redraw.RedrawId">
+                </span>
+            }
+        </div>
+        <div class="text-center">
+            <select name="dims" id="dims">
+                <option value="1024">1024</option>
+                <option value="2048">2048 (will downscale)</option>
+                <option value="4096">4096 (will downscale)</option>
+            </select>
+        </div>
+        <div id="redrawn-image">
+            <a href="@Url.Page("Images", "ImageData", new { id = Model.Image.Id })">
+                <img ismap alt="Image to be redrawn" src="@Url.Page("Images", "ImageData", new { id = Model.Image.Id })"
+                     width="@Model.Image.Width" height="@Model.Image.Height">
+            </a>
+        </div>
+        <script>
+            function clamp(num, lower, upper) {
+                return Math.min(Math.max(num, lower), upper);
+            }
+
+            function getCoords(o, p) {
+                const w = p.selectionWidth;
+                const h = p.selectionHeight;
+                return {
+                    x: clamp(o.x + w / 2, w, p.imageWidth) - w,
+                    y: clamp(o.y + h / 2, h, p.imageHeight) - h,
+                }
+            }
+
+            const target = document.getElementById('redrawn-image');
+            const img = target.getElementsByTagName('img')[0];
+            const dims = document.getElementById('dims');
+            const areas = [];
+
+            const htmlAreas = document.getElementById('redraw-areas').children;
+            for (const htmlArea of htmlAreas) {
+                const x = parseInt(htmlArea.getAttribute('data-x'));
+                const y = parseInt(htmlArea.getAttribute('data-y'));
+                const width = parseInt(htmlArea.getAttribute('data-width'));
+                const height = parseInt(htmlArea.getAttribute('data-height'));
+                const redrawId = htmlArea.getAttribute('data-redraw-id');
+                const isReady = htmlArea.getAttribute('data-isready') === 'true';
+                if (!isNaN(x) && !isNaN(y) && !isNaN(width) && !isNaN(height)) {
+                    const area = {
+                        x: x,
+                        y: y,
+                        width: width,
+                        height: height,
+                        state: isReady ? 'done' : 'redrawing',
+                        img: redrawId,
+                    };
+                    areas.push(area);
+                }
+            }
+
+
+            function removeOpts(dims) {
+                const elements = [];
+                for (const c of dims.children) {
+                    const v = parseInt(c.value);
+                    if (!(v > img.naturalWidth || v > img.naturalHeight)) {
+                        elements.push(c);
+                    }
+                }
+                dims.replaceChildren(...elements);
+                dims.selectedIndex = 0;
+            }
+
+            function draw(ctx, img, areas) {
+                ctx.clearRect(0, 0, img.naturalWidth, img.naturalHeight);
+                ctx.drawImage(img, 0, 0);
+                for (const area of areas) {
+                    switch (area.state) {
+                        case 'placing':
+                            drawRect(ctx, area, 'green', 1);
+                            break;
+                        case 'redrawing':
+                            drawRect(ctx, area, 'blue', 0.2);
+                            break;
+                        case 'done':
+                            ctx.drawImage(area.img, 0, 0);
+                            break;
+                    }
+                }
+            }
+
+            function drawRect(ctx, rect, color, alpha) {
+                const oldAlpha = ctx.globalAlpha;
+                ctx.globalAlpha = alpha === undefined ? 1 : alpha;
+                ctx.fillStyle = color;
+                ctx.fillRect(rect.x, rect.y, rect.width, rect.height);
+                ctx.globalAlpha = oldAlpha;
+            }
+
+            img.addEventListener("load", (e) => {
+                removeOpts(dims);
+                const canvas = document.createElement("canvas");
+                canvas.setAttribute("width", img.naturalWidth + "");
+                canvas.setAttribute("height", img.naturalHeight + "");
+                canvas.setAttribute("style", "cursor: crosshair")
+                const ctx = canvas.getContext("2d");
+
+                draw(ctx, img, areas);
+
+                function getP() {
+                    const p = {
+                        imageWidth: img.naturalWidth,
+                        imageHeight: img.naturalHeight,
+                        selectionWidth: parseInt(dims.value),
+                        selectionHeight: parseInt(dims.value),
+                    };
+                    return p;
+                }
+
+                canvas.addEventListener("mousemove", (e) => {
+                    draw(ctx, img, areas);
+
+                    const p = getP();
+                    const pos = getCoords({
+                        x: e.offsetX,
+                        y: e.offsetY,
+                    }, p);
+                    drawRect(ctx, {
+                        x: pos.x,
+                        y: pos.y,
+                        width: p.selectionWidth,
+                        height: p.selectionHeight,
+                    }, 'red', 0.2);
+                });
+
+                canvas.addEventListener("click", async (e) => {
+                    draw(ctx, img, areas);
+
+                    const p = getP();
+                    const pos = getCoords({
+                        x: e.offsetX,
+                        y: e.offsetY
+                    }, p);
+
+                    const area = {
+                        x: pos.x,
+                        y: pos.y,
+                        width: p.selectionWidth,
+                        height: p.selectionHeight,
+                        state: 'placing',
+                        img: null,
+                    };
+                    areas.push(area);
+                    draw(ctx, img, areas);
+
+                    const response = await fetch("/Api/Redraw", {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                            "Accept": "application/json",
+                        },
+                        body: JSON.stringify({
+                            ImageId: "@Model.Image.Id",
+                            X: pos.x,
+                            Y: pos.y,
+                            Width: parseInt(dims.value),
+                            Height: parseInt(dims.value),
+                        }),
+                    })
+
+                    if (response.ok) {
+                        area.state = 'redrawing';
+                    } else {
+                        areas.splice(areas.indexOf(area), 1);
+                        draw(ctx, img, areas);
+                    }
+                });
+
+                target.replaceWith(canvas);
+            });
+        </script>
+    }
+    else
+    {
+        <div class="text-center">
+            <form enctype="multipart/form-data" method="post">
+                <label>
+                    Page:
+                    <input type="file" name="image"/>
+                </label>
+                <label>
+                    Mask:
+                    <input type="file" name="mask"/>
+                </label>
+                <input type="submit"/>
+            </form>
+        </div>
+    }
+</div>

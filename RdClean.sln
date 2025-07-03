@@ -1,0 +1,21 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RdClean", "RdClean\RdClean.csproj", "{3E451608-44D5-4422-B994-63616B7D2C80}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{4C648635-236D-4CFD-B206-EC9FFE290A10}"
+	ProjectSection(SolutionItems) = preProject
+		compose.yaml = compose.yaml
+	EndProjectSection
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{3E451608-44D5-4422-B994-63616B7D2C80}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3E451608-44D5-4422-B994-63616B7D2C80}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3E451608-44D5-4422-B994-63616B7D2C80}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3E451608-44D5-4422-B994-63616B7D2C80}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal
