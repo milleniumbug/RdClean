@@ -9,13 +9,13 @@ using RdClean.Services;
 namespace RdClean.Pages;
 
 [Authorize]
-public class RedrawModel : PageModel
+public class RedrawsModel : PageModel
 {
     private readonly ILogger<IndexModel> _logger;
     private readonly ApplicationDbContext dbContext;
     private readonly IFileProvider fileProvider;
 
-    public RedrawModel(
+    public RedrawsModel(
         ILogger<IndexModel> logger,
         ApplicationDbContext dbContext,
         IFileProvider fileProvider)

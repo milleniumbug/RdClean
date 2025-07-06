@@ -1,4 +1,5 @@
 using System.IO.Compression;
+using System.Net;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -7,6 +8,9 @@ using Microsoft.EntityFrameworkCore;
 using RdClean.Data;
 using RdClean.Extensions;
 using RdClean.Services;
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.Formats;
+using Image = RdClean.Data.Image;
 
 namespace RdClean.Pages;
 
@@ -26,10 +30,12 @@ public class ImageModel : PageModel
     
     public async Task OnGetAsync(Guid? id = null)
     {
+        var userName = Request.GetUserName();
         if (id != null)
         {
             this.Image = await dbContext.Images
                 .AsSplitQuery()
+                .Where(image => image.User.UserName == userName)
                 .Include(image => image.Redraws)
                 .Select(image => new ImageDownloadModel()
                 {
@@ -52,6 +58,7 @@ public class ImageModel : PageModel
         else
         {
             this.Images = (await dbContext.Images
+                    .Where(image => image.User.UserName == userName)
                     .Select(image => new { image.Name, image.Id })
                     .ToListAsync())
                 .Select(image => (image.Name, Url.Page("/Images", new { id = image.Id })))
@@ -137,7 +144,12 @@ public class ImageModel : PageModel
     {
         if (image.Image.Length > 150 * 1024 * 1024)
         {
-            return BadRequest();
+            return BadRequest("page file too large");
+        }
+        
+        if (image.Mask != null && image.Mask.Length > 150 * 1024 * 1024)
+        {
+            return BadRequest("mask file too large");
         }
 
         var userName = Request.GetUserName();
@@ -157,6 +169,28 @@ public class ImageModel : PageModel
         var identify = await SixLabors.ImageSharp.Image.IdentifyAsync(tempFile);
         tempFile.Position = 0;
         var fileId = await fileProvider.Upload(tempFile);
+        
+        tempFile.Position = 0;
+        tempFile.SetLength(0);
+
+        IImageFormat? maskFormatDetect = null;
+        Guid? maskFileId = null;
+        if (image.Mask != null)
+        {
+            await using var maskStream = image.Mask.OpenReadStream();
+            await maskStream.CopyToAsync(tempFile);
+            maskFormatDetect = await SixLabors.ImageSharp.Image.DetectFormatAsync(tempFile);
+            tempFile.Position = 0;
+            var maskIdentify = await SixLabors.ImageSharp.Image.IdentifyAsync(tempFile);
+            tempFile.Position = 0;
+
+            if (identify.Width != maskIdentify.Width || identify.Height != maskIdentify.Height)
+            {
+                return BadRequest("mask has different dimension from page");
+            }
+            
+            maskFileId = await fileProvider.Upload(tempFile);
+        }
 
         var entity = new Image(
             user,
@@ -164,7 +198,9 @@ public class ImageModel : PageModel
             image.Image.FileName,
             formatDetect.DefaultMimeType,
             identify.Width,
-            identify.Height);
+            identify.Height,
+            maskFileId,
+            maskFormatDetect?.DefaultMimeType);
         dbContext.Images.Add(
             entity);
         
@@ -207,4 +243,6 @@ public class RedrawDownloadModel
 public class ImageUploadModel
 {
     public IFormFile Image { get; set; }
+    
+    public IFormFile? Mask { get; set; }
 }

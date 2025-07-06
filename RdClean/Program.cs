@@ -22,13 +22,24 @@ public class Program
 
         builder.Services.AddDefaultIdentity<User>(options => options.SignIn.RequireConfirmedAccount = true)
             .AddEntityFrameworkStores<ApplicationDbContext>();
+        
+        builder.Services.AddAuthentication()
+            .AddDiscord(options =>
+            {
+                options.ClientId = builder.Configuration["Discord:ClientId"]!;
+                options.ClientSecret = builder.Configuration["Discord:ClientSecret"]!;
+            });
+
+        
         builder.Services.AddRazorPages();
         builder.Services.AddMvc();
         builder.Services.AddSingleton<RedrawTaskService>();
         builder.Services.AddScoped<RedrawService>();
+        builder.Services.AddScoped<DeleteService>();
+        string comfyUiUrl = builder.Configuration["ComfyUiUrl"]!;
         builder.Services.AddScoped<ComfyUiClient>(provider => new ComfyUiClient(new HttpClient()
         {
-            BaseAddress = new Uri("http://localhost:8188/"),
+            BaseAddress = new Uri(comfyUiUrl),
         }));
         string fileStoragePath = builder.Configuration["FileStoragePath"]!;
         builder.Services.AddScoped<IFileProvider>(provider =>

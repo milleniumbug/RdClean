@@ -12,29 +12,36 @@
             {
                 <div data-x="@redraw.X" data-y="@redraw.Y" data-width="@redraw.Width" data-height="@redraw.Height"
                      data-isready="@redraw.IsReady.ToString().ToLowerInvariant()" data-redraw-id="@redraw.RedrawId"
-                     data-redraw-url="@Url.Page("Redraw", "ImageData", new { id = redraw.RedrawId })">
+                     data-redraw-url="@Url.Page("Redraws", "ImageData", new { id = redraw.RedrawId })">
                     @if (redraw.IsReady)
                     {
-                        <img src="@Url.Page("Redraw", "ImageData", new { id = redraw.RedrawId })" alt="rd"/>
+                        <img src="@Url.Page("Redraws", "ImageData", new { id = redraw.RedrawId })" alt="rd"/>
                     }
                 </div>
             }
         </div>
-        <div class="text-center">
-            <select name="dims" id="dims">
-                <option value="1024">1024</option>
-                <option value="2048">2048 (will downscale)</option>
-                <option value="4096">4096 (will downscale)</option>
-            </select>
+        <div class="text-center" style="display: flex; flex-direction: row">
+            <div style="flex: 1">
+                <select name="dims" id="dims">
+                    <option value="1024">1024</option>
+                    <option value="2048">2048 (will downscale)</option>
+                    <option value="4096">4096 (will downscale)</option>
+                </select>
+            </div>
+            <div style="flex: 1">
+                <a href="@Url.Page("Images", "Download", new { id = Model.Image.Id })">Download (as ZIP)</a>
+            </div>
+            <div style="flex: 1">
+                <form method="post" action="/Image/Delete/@Model.Image.Id">
+                    <input type="submit" value="Delete"/>
+                </form>
+            </div>
         </div>
         <div id="redrawn-image">
             <a href="@Url.Page("Images", "ImageData", new { id = Model.Image.Id })">
-                <img ismap alt="Image to be redrawn" src="@Url.Page("Images", "ImageData", new { id = Model.Image.Id })"
+                <img ismap alt="Image to be redrawn" src="@Url.Page("/Images", "ImageData", new { id = Model.Image.Id })"
                      width="@Model.Image.Width" height="@Model.Image.Height">
             </a>
-        </div>
-        <div>
-            <a href="@Url.Page("Images", "Download", new { id = Model.Image.Id })">Download</a>
         </div>
         <script>
             function delay(ms) {
@@ -80,6 +87,7 @@
                     };
                     setTimeout(async () => {
                         area.img = await downloadImage(area.url);
+                        area.state = 'done';
                     }, 2500);
                     areas.push(area);
                 }
@@ -228,12 +236,13 @@
                     if (response.ok) {
                         area.state = 'redrawing';
                         const r = await response.json();
-                        area.x = r.X;
-                        area.y = r.Y;
-                        area.width = r.Width;
-                        area.height = r.Height;
-                        area.url = r.RedrawUrl;
+                        area.x = r.x;
+                        area.y = r.y;
+                        area.width = r.width;
+                        area.height = r.height;
+                        area.url = r.redrawUrl;
                         area.img = await downloadImage(area.url);
+                        area.state = 'done';
                         draw(ctx, img, areas);
                     } else {
                         areas.splice(areas.indexOf(area), 1);
@@ -245,12 +254,12 @@
             });
         </script>
     }
-    else
+    else if(Model.Images != null)
     {
         <div class="text-center">
             <form enctype="multipart/form-data" method="post">
                 <label>
-                    Page:
+                    Page*:
                     <input type="file" name="image"/>
                 </label>
                 <label>
@@ -262,11 +271,17 @@
         </div>
         <div class="text-center">
             <ul>
-                @foreach (var (name, url) in Model.Images ?? [])
+                @foreach (var (name, url) in Model.Images)
                 {
                     <li><a href="@url">@name</a></li>
                 }
             </ul>
+        </div>
+    }
+    else
+    {
+        <div class="text-center">
+            Not found
         </div>
     }
 </div>

@@ -1,3 +1,4 @@
+using System.Net;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -11,6 +12,26 @@ namespace RdClean.Controllers;
 [Route("Api")]
 public class ApiController : ControllerBase
 {
+    [Authorize]
+    [HttpDelete("Image/{id}")]
+    public async Task<IActionResult> DeleteImage(
+        [FromRoute] Guid id,
+        [FromServices] DeleteService service)
+    {
+        var result = await service.DeleteImage(
+            Request.GetUserName(),
+            id);
+
+        return result.Match<IActionResult>(
+               some => Ok(),
+               none => none switch
+               {
+                   HttpStatusCode.NotFound => NotFound(),
+                   HttpStatusCode.Forbidden => Forbid(),
+                   _ => throw new InvalidOperationException(),
+               });
+    }
+
     [Authorize]
     [HttpPost("Redraw")]
     public async Task<IActionResult> Redraw(
@@ -58,7 +79,7 @@ public class ApiController : ControllerBase
             {
                 ImageId = request.ImageId,
                 RedrawId = redrawEntity.Id,
-                RedrawUrl = Url.Page("/Redraw", "ImageData", new { id = redrawEntity.Id }),
+                RedrawUrl = Url.Page("/Redraws", "ImageData", new { id = redrawEntity.Id }),
                 Width = request.Width,
                 Height = request.Height,
                 X = x,

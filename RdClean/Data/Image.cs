@@ -18,6 +18,11 @@ public class Image
     
     public Guid FileId { get; private set; }
     
+    [MaxLength(256)]
+    public string? MaskMimeType { get; private set; }
+    
+    public Guid? MaskFileId { get; private set; }
+    
     public int Width { get; private set; }
     
     public int Height { get; private set; }
@@ -32,7 +37,7 @@ public class Image
         MimeType = null!;
     }
 
-    public Image(User user, Guid fileId, string name, string mimeType, int width, int height)
+    public Image(User user, Guid fileId, string name, string mimeType, int width, int height, Guid? maskFileId = null, string? maskMimeType = null)
     {
         Id = Guid.NewGuid();
         User = user;
@@ -41,5 +46,7 @@ public class Image
         MimeType = mimeType;
         Width = width;
         Height = height;
+        MaskFileId = maskFileId;
+        MaskMimeType = maskMimeType;
     }
 }
