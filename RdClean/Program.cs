@@ -53,6 +53,18 @@ public class Program
         {
             ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
         });
+        
+        app.Use((context, next) =>
+        {
+            context.Request.Scheme = "https";
+            return next(context);
+        });
+        
+        // Required to serve files with no extension in the .well-known folder
+        var options = new StaticFileOptions()
+        {
+            ServeUnknownFileTypes = true,
+        };
 
         // Configure the HTTP request pipeline.
         if (app.Environment.IsDevelopment())
