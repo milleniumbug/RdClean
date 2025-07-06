@@ -13,9 +13,10 @@ public class Image
     [MaxLength(256)]
     public string Name { get; private set; }
     
+    [MaxLength(256)]
     public string MimeType { get; private set; }
     
-    public byte[] ImageBytes { get; private set; }
+    public Guid FileId { get; private set; }
     
     public int Width { get; private set; }
     
@@ -26,17 +27,16 @@ public class Image
     [UsedImplicitly]
     private Image()
     {
-        ImageBytes = [];
         Name = null!;
         User = null!;
         MimeType = null!;
     }
 
-    public Image(User user, byte[] imageBytes, string name, string mimeType, int width, int height)
+    public Image(User user, Guid fileId, string name, string mimeType, int width, int height)
     {
         Id = Guid.NewGuid();
         User = user;
-        ImageBytes = imageBytes;
+        FileId = fileId;
         Name = name;
         MimeType = mimeType;
         Width = width;

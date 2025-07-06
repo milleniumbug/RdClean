@@ -6,7 +6,7 @@ public class Redraw
 {
     public Guid Id { get; private set; }
     
-    public byte[]? ImageBytes { get; private set; }
+    public Guid? FileId { get; private set; }
     
     public int X { get; private set; }
     
@@ -37,8 +37,8 @@ public class Redraw
         Height = height;
     }
 
-    public void SetRedraw(byte[] imageBytes)
+    public void SetRedraw(Guid fileId)
     {
-        ImageBytes = imageBytes;
+        FileId = fileId;
     }
 }

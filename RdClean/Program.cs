@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using RdClean.Data;
 using RdClean.Services;
+using Sail.ComfyUi;
 
 namespace RdClean;
 
@@ -24,6 +25,14 @@ public class Program
         builder.Services.AddRazorPages();
         builder.Services.AddMvc();
         builder.Services.AddSingleton<RedrawTaskService>();
+        builder.Services.AddScoped<RedrawService>();
+        builder.Services.AddScoped<ComfyUiClient>(provider => new ComfyUiClient(new HttpClient()
+        {
+            BaseAddress = new Uri("http://localhost:8188/"),
+        }));
+        string fileStoragePath = builder.Configuration["FileStoragePath"]!;
+        builder.Services.AddScoped<IFileProvider>(provider =>
+            new FileProvider(new DirectoryInfo(fileStoragePath)));
         
         builder.Services.AddHostedService(provider => provider.GetRequiredService<RedrawTaskService>());
 

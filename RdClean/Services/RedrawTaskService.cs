@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using RdClean.Data;
+using Sail;
 
 namespace RdClean.Services;
 
@@ -39,24 +40,27 @@ public class RedrawTaskService(
     
     private async Task DoWork(CancellationToken cancellationToken)
     {
+        await this.semaphore.WaitAsync(TimeSpan.FromSeconds(15), cancellationToken);
         while (true)
         {
-            await this.semaphore.WaitAsync(TimeSpan.FromHours(1), cancellationToken);
             using var scope = scopeFactory.CreateScope();
             while (await DoWork(scope.ServiceProvider, cancellationToken))
             {
                 
             }
+            await this.semaphore.WaitAsync(TimeSpan.FromHours(1), cancellationToken);
         }
     }
 
     private async Task<bool> DoWork(IServiceProvider serviceProvider, CancellationToken cancellationToken)
     {
         var dbContext = serviceProvider.GetRequiredService<ApplicationDbContext>();
+        var redrawService = serviceProvider.GetRequiredService<RedrawService>();
+        var fileProvider = serviceProvider.GetRequiredService<IFileProvider>();
         var redraw = await dbContext.Redraws
             .Include(redraw => redraw.Image)
             .FirstOrDefaultAsync(
-                redraw => redraw.ImageBytes == null,
+                redraw => redraw.FileId == null,
                 cancellationToken: cancellationToken);
         if (redraw == null)
         {
@@ -65,7 +69,8 @@ public class RedrawTaskService(
 
         try
         {
-            await IssueComfy(redraw);
+            await IssueComfy(redrawService, fileProvider, redraw);
+            await dbContext.SaveChangesAsync(CancellationToken.None);
         }
         catch (Exception ex)
         {
@@ -76,9 +81,15 @@ public class RedrawTaskService(
         return true;
     }
 
-    private async Task IssueComfy(Redraw redraw)
+    private async Task IssueComfy(RedrawService redrawService, IFileProvider provider, Redraw redraw)
     {
-        throw new NotImplementedException();
+        await using var inputStream = await provider.Download(redraw.Image.FileId);
+        var outputStream = await redrawService.Redraw(inputStream, redraw.Image.Name, new Rectangle2D(
+            new Point2D(redraw.X, redraw.Y),
+            new Size2D(redraw.Width, redraw.Height)));
+
+        var redrawFileId = await provider.Upload(outputStream);
+        redraw.SetRedraw(redrawFileId);
     }
     
     public async Task StopAsync(CancellationToken stoppingToken)

@@ -1,3 +1,4 @@
+using System.IO.Compression;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -5,6 +6,7 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
 using RdClean.Data;
 using RdClean.Extensions;
+using RdClean.Services;
 
 namespace RdClean.Pages;
 
@@ -13,11 +15,13 @@ public class ImageModel : PageModel
 {
     private readonly ILogger<ImageModel> _logger;
     private readonly ApplicationDbContext dbContext;
+    private readonly IFileProvider fileProvider;
 
-    public ImageModel(ILogger<ImageModel> logger, ApplicationDbContext dbContext)
+    public ImageModel(ILogger<ImageModel> logger, ApplicationDbContext dbContext, IFileProvider fileProvider)
     {
         _logger = logger;
         this.dbContext = dbContext;
+        this.fileProvider = fileProvider;
     }
     
     public async Task OnGetAsync(Guid? id = null)
@@ -40,23 +44,92 @@ public class ImageModel : PageModel
                             Width = redraw.Width,
                             Height = redraw.Height,
                             RedrawId = redraw.Id,
-                            IsReady = redraw.ImageBytes != null,
+                            IsReady = redraw.FileId != null,
                         })
                 })
                 .FirstOrDefaultAsync(image => image.Id == id);
+        }
+        else
+        {
+            this.Images = (await dbContext.Images
+                    .Select(image => new { image.Name, image.Id })
+                    .ToListAsync())
+                .Select(image => (image.Name, Url.Page("/Images", new { id = image.Id })))
+                .ToList();
         }
     }
     
     public async Task<IActionResult> OnGetImageDataAsync(
         Guid id)
     {
+        var userName = Request.GetUserName();
+        if (userName == null)
+        {
+            return Forbid();
+        }
+
         var image = await dbContext.Images
-            .FirstOrDefaultAsync(image => image.Id == id);
+            .FirstOrDefaultAsync(image =>
+                image.Id == id &&
+                image.User.UserName == userName);
+
         if (image == null)
         {
             return NotFound();
         }
-        return File(image.ImageBytes, "image/png");
+        
+        var fileStream = await fileProvider.Download(image.FileId);
+        return File(fileStream, image.MimeType);
+    }
+    
+    public async Task<IActionResult> OnGetDownloadAsync(
+        Guid id)
+    {
+        var userName = Request.GetUserName();
+        if (userName == null)
+        {
+            return Forbid();
+        }
+
+        var image = await dbContext.Images
+            .Include(image => image.Redraws)
+            .FirstOrDefaultAsync(image =>
+                image.Id == id &&
+                image.User.UserName == userName);
+
+        if (image == null)
+        {
+            return NotFound();
+        }
+        
+        var memoryStream = new MemoryStream();
+        using (var zip = new ZipArchive(memoryStream, ZipArchiveMode.Create, leaveOpen: true))
+        {
+            {
+                var zipArchiveEntry = zip.CreateEntry(image.Name, CompressionLevel.Fastest);
+                await using var zipStream = zipArchiveEntry.Open();
+                await using var imageStream = await fileProvider.Download(image.FileId);
+                await imageStream.CopyToAsync(zipStream);
+            }
+            int i = 0;
+            foreach (var redraw in image.Redraws ?? [])
+            {
+                i++;
+                if (redraw.FileId == null)
+                {
+                    continue;
+                }
+
+                var zipArchiveEntry = zip.CreateEntry($"{i:D5}.png", CompressionLevel.Fastest);
+                await using var zipStream = zipArchiveEntry.Open();
+                await using var redrawStream = await fileProvider.Download(redraw.FileId.Value);
+                await redrawStream.CopyToAsync(zipStream);
+            }
+        }
+
+        memoryStream.Position = 0;
+
+        return File(memoryStream, "application/zip");
     }
     
     public async Task<IActionResult> OnPostAsync(
@@ -75,16 +148,19 @@ public class ImageModel : PageModel
         }
         
         await using var stream = image.Image.OpenReadStream();
-        using var memoryStream = new MemoryStream();
-        await stream.CopyToAsync(memoryStream);
-        var imageBytes = memoryStream.ToArray();
+        await using var tempFile = FileExt.CreateTemporaryFile();
+        await stream.CopyToAsync(tempFile);
 
-        var formatDetect = SixLabors.ImageSharp.Image.DetectFormat(imageBytes);
-        var identify = SixLabors.ImageSharp.Image.Identify(imageBytes);
-        
+        tempFile.Position = 0;
+        var formatDetect = await SixLabors.ImageSharp.Image.DetectFormatAsync(tempFile);
+        tempFile.Position = 0;
+        var identify = await SixLabors.ImageSharp.Image.IdentifyAsync(tempFile);
+        tempFile.Position = 0;
+        var fileId = await fileProvider.Upload(tempFile);
+
         var entity = new Image(
             user,
-            imageBytes,
+            fileId,
             image.Image.FileName,
             formatDetect.DefaultMimeType,
             identify.Width,
@@ -98,6 +174,8 @@ public class ImageModel : PageModel
     }
 
     public ImageDownloadModel? Image { get; set; }
+    
+    public IEnumerable<(string name, string? url)>? Images { get; set; }
 }
 
 public class ImageDownloadModel

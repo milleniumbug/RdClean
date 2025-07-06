@@ -13,4 +13,5 @@ public class AddRedrawResponse
     public required int Width { get; init; }
     
     public required int Height { get; init; }
+    public string? RedrawUrl { get; init; }
 }

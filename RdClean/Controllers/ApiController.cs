@@ -58,6 +58,7 @@ public class ApiController : ControllerBase
             {
                 ImageId = request.ImageId,
                 RedrawId = redrawEntity.Id,
+                RedrawUrl = Url.Page("/Redraw", "ImageData", new { id = redrawEntity.Id }),
                 Width = request.Width,
                 Height = request.Height,
                 X = x,

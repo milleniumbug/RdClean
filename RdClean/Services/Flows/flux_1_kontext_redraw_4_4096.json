@@ -1,0 +1,482 @@
+{
+  "6": {
+    "inputs": {
+      "text": "Remove the japanese text from this manga panel. Leave everything else unchanged!",
+      "clip": [
+        "38",
+        0
+      ]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "CLIP Text Encode (Positive Prompt)"
+    }
+  },
+  "8": {
+    "inputs": {
+      "samples": [
+        "31",
+        0
+      ],
+      "vae": [
+        "39",
+        0
+      ]
+    },
+    "class_type": "VAEDecode",
+    "_meta": {
+      "title": "VAE Decode"
+    }
+  },
+  "31": {
+    "inputs": {
+      "seed": 1036902081679045,
+      "steps": 20,
+      "cfg": 1,
+      "sampler_name": "euler",
+      "scheduler": "simple",
+      "denoise": 1,
+      "model": [
+        "37",
+        0
+      ],
+      "positive": [
+        "35",
+        0
+      ],
+      "negative": [
+        "135",
+        0
+      ],
+      "latent_image": [
+        "124",
+        0
+      ]
+    },
+    "class_type": "KSampler",
+    "_meta": {
+      "title": "KSampler"
+    }
+  },
+  "35": {
+    "inputs": {
+      "guidance": 2.5,
+      "conditioning": [
+        "177",
+        0
+      ]
+    },
+    "class_type": "FluxGuidance",
+    "_meta": {
+      "title": "FluxGuidance"
+    }
+  },
+  "37": {
+    "inputs": {
+      "unet_name": "flux1-dev-kontext_fp8_scaled.safetensors",
+      "weight_dtype": "default"
+    },
+    "class_type": "UNETLoader",
+    "_meta": {
+      "title": "Load Diffusion Model"
+    }
+  },
+  "38": {
+    "inputs": {
+      "clip_name1": "clip_l.safetensors",
+      "clip_name2": "t5xxl_fp8_e4m3fn_scaled.safetensors",
+      "type": "flux",
+      "device": "default"
+    },
+    "class_type": "DualCLIPLoader",
+    "_meta": {
+      "title": "DualCLIPLoader"
+    }
+  },
+  "39": {
+    "inputs": {
+      "vae_name": "ae.safetensors"
+    },
+    "class_type": "VAELoader",
+    "_meta": {
+      "title": "Load VAE"
+    }
+  },
+  "42": {
+    "inputs": {
+      "image": [
+        "146",
+        0
+      ]
+    },
+    "class_type": "FluxKontextImageScale",
+    "_meta": {
+      "title": "FluxKontextImageScale"
+    }
+  },
+  "124": {
+    "inputs": {
+      "pixels": [
+        "42",
+        0
+      ],
+      "vae": [
+        "39",
+        0
+      ]
+    },
+    "class_type": "VAEEncode",
+    "_meta": {
+      "title": "VAE Encode"
+    }
+  },
+  "135": {
+    "inputs": {
+      "conditioning": [
+        "6",
+        0
+      ]
+    },
+    "class_type": "ConditioningZeroOut",
+    "_meta": {
+      "title": "ConditioningZeroOut"
+    }
+  },
+  "146": {
+    "inputs": {
+      "direction": "right",
+      "match_image_size": true,
+      "spacing_width": 0,
+      "spacing_color": "white",
+      "image1": [
+        "208",
+        0
+      ]
+    },
+    "class_type": "ImageStitch",
+    "_meta": {
+      "title": "Image Stitch"
+    }
+  },
+  "173": {
+    "inputs": {
+      "images": [
+        "42",
+        0
+      ]
+    },
+    "class_type": "PreviewImage",
+    "_meta": {
+      "title": "Preview Image"
+    }
+  },
+  "177": {
+    "inputs": {
+      "conditioning": [
+        "6",
+        0
+      ],
+      "latent": [
+        "124",
+        0
+      ]
+    },
+    "class_type": "ReferenceLatent",
+    "_meta": {
+      "title": "ReferenceLatent"
+    }
+  },
+  "193": {
+    "inputs": {
+      "int": 4096
+    },
+    "class_type": "Primitive integer [Crystools]",
+    "_meta": {
+      "title": "width (must be 1024, 2048, or 4096)"
+    }
+  },
+  "194": {
+    "inputs": {
+      "int": [
+        "193",
+        0
+      ]
+    },
+    "class_type": "Primitive integer [Crystools]",
+    "_meta": {
+      "title": "height (you probably want to keep this as is)"
+    }
+  },
+  "198": {
+    "inputs": {
+      "int": 565
+    },
+    "class_type": "Primitive integer [Crystools]",
+    "_meta": {
+      "title": "x"
+    }
+  },
+  "199": {
+    "inputs": {
+      "int": 1235
+    },
+    "class_type": "Primitive integer [Crystools]",
+    "_meta": {
+      "title": "y"
+    }
+  },
+  "201": {
+    "inputs": {
+      "x": [
+        "198",
+        0
+      ],
+      "y": [
+        "199",
+        0
+      ],
+      "resize_source": false,
+      "destination": [
+        "205",
+        0
+      ],
+      "source": [
+        "238",
+        0
+      ]
+    },
+    "class_type": "ImageCompositeMasked",
+    "_meta": {
+      "title": "ImageCompositeMasked"
+    }
+  },
+  "205": {
+    "inputs": {
+      "width": [
+        "206",
+        0
+      ],
+      "height": [
+        "206",
+        1
+      ],
+      "batch_size": 1,
+      "color": 16711935
+    },
+    "class_type": "EmptyImage",
+    "_meta": {
+      "title": "EmptyImage"
+    }
+  },
+  "206": {
+    "inputs": {
+      "image": [
+        "246",
+        0
+      ]
+    },
+    "class_type": "GetImageSize+",
+    "_meta": {
+      "title": "🔧 Get Image Size"
+    }
+  },
+  "208": {
+    "inputs": {
+      "width": [
+        "193",
+        0
+      ],
+      "height": [
+        "194",
+        0
+      ],
+      "x": [
+        "198",
+        0
+      ],
+      "y": [
+        "199",
+        0
+      ],
+      "image": [
+        "246",
+        0
+      ]
+    },
+    "class_type": "ImageCrop",
+    "_meta": {
+      "title": "Image Crop"
+    }
+  },
+  "213": {
+    "inputs": {
+      "width": 2048,
+      "height": 2048,
+      "interpolation": "nearest",
+      "method": "keep proportion",
+      "condition": "always",
+      "multiple_of": 0,
+      "image": [
+        "215",
+        0
+      ]
+    },
+    "class_type": "ImageResize+",
+    "_meta": {
+      "title": "🔧 Image Resize"
+    }
+  },
+  "215": {
+    "inputs": {
+      "upscale_model": [
+        "216",
+        0
+      ],
+      "image": [
+        "8",
+        0
+      ]
+    },
+    "class_type": "ImageUpscaleWithModel",
+    "_meta": {
+      "title": "Upscale Image (using Model)"
+    }
+  },
+  "216": {
+    "inputs": {
+      "model_name": "ESRGAN_4x.pth"
+    },
+    "class_type": "UpscaleModelLoader",
+    "_meta": {
+      "title": "Load Upscale Model"
+    }
+  },
+  "220": {
+    "inputs": {
+      "images": [
+        "238",
+        0
+      ]
+    },
+    "class_type": "PreviewImage",
+    "_meta": {
+      "title": "Preview Image"
+    }
+  },
+  "221": {
+    "inputs": {
+      "images": [
+        "224",
+        0
+      ]
+    },
+    "class_type": "PreviewImage",
+    "_meta": {
+      "title": "Preview Image"
+    }
+  },
+  "223": {
+    "inputs": {
+      "color": 16711935,
+      "image": [
+        "205",
+        0
+      ]
+    },
+    "class_type": "ImageColorToMask",
+    "_meta": {
+      "title": "ImageColorToMask"
+    }
+  },
+  "224": {
+    "inputs": {
+      "x": [
+        "198",
+        0
+      ],
+      "y": [
+        "199",
+        0
+      ],
+      "resize_source": false,
+      "destination": [
+        "246",
+        0
+      ],
+      "source": [
+        "238",
+        0
+      ]
+    },
+    "class_type": "ImageCompositeMasked",
+    "_meta": {
+      "title": "ImageCompositeMasked"
+    }
+  },
+  "226": {
+    "inputs": {
+      "invert": true,
+      "red": 255,
+      "green": 0,
+      "blue": 255,
+      "threshold": 1,
+      "per_batch": 16,
+      "images": [
+        "201",
+        0
+      ]
+    },
+    "class_type": "ColorToMask",
+    "_meta": {
+      "title": "Color To Mask"
+    }
+  },
+  "227": {
+    "inputs": {
+      "filename_prefix": "redraw_part",
+      "images": [
+        "201",
+        0
+      ],
+      "mask": [
+        "226",
+        0
+      ]
+    },
+    "class_type": "SaveImageWithAlpha",
+    "_meta": {
+      "title": "Save Image With Alpha"
+    }
+  },
+  "238": {
+    "inputs": {
+      "value": [
+        "215",
+        0
+      ]
+    },
+    "class_type": "ReroutePrimitive|pysssss",
+    "_meta": {
+      "title": "Reroute Primitive 🐍"
+    }
+  },
+  "245": {
+    "inputs": {
+      "image": "autredraw_00025_.png [output]",
+      "refresh": "refresh"
+    },
+    "class_type": "LoadImageOutput",
+    "_meta": {
+      "title": "Load Image (from Outputs)"
+    }
+  },
+  "246": {
+    "inputs": {
+      "image": "asdzcxzczc.png"
+    },
+    "class_type": "LoadImage",
+    "_meta": {
+      "title": "Load Image"
+    }
+  }
+}

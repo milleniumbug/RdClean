@@ -16,6 +16,7 @@
         <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="8.0.17"/>
         <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="8.0.17"/>
         <PackageReference Include="SixLabors.ImageSharp" Version="3.1.10" />
+        <PackageReference Include="TupleAsJsonArray" Version="1.0.2" />
     </ItemGroup>
 
     <ItemGroup>
@@ -26,6 +27,20 @@
 
     <ItemGroup>
       <Folder Include="Data\Migrations\" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\Sail\Sail.ComfyUi\Sail.ComfyUi.csproj" />
+      <ProjectReference Include="..\Sail\Sail.Common\Sail.Common.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <Content Remove="Services\Flows\flux_1_kontext_redraw_4_1024.json" />
+      <EmbeddedResource Include="Services\Flows\flux_1_kontext_redraw_4_1024.json" />
+      <Content Remove="Services\Flows\flux_1_kontext_redraw_4_2048.json" />
+      <EmbeddedResource Include="Services\Flows\flux_1_kontext_redraw_4_2048.json" />
+      <Content Remove="Services\Flows\flux_1_kontext_redraw_4_4096.json" />
+      <EmbeddedResource Include="Services\Flows\flux_1_kontext_redraw_4_4096.json" />
     </ItemGroup>
 
 </Project>
