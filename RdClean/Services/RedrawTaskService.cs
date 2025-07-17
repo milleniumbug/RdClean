@@ -84,9 +84,16 @@ public class RedrawTaskService(
     private async Task IssueComfy(RedrawService redrawService, IFileProvider provider, Redraw redraw)
     {
         await using var inputStream = await provider.Download(redraw.Image.FileId);
-        var outputStream = await redrawService.Redraw(inputStream, redraw.Image.Name, new Rectangle2D(
-            new Point2D(redraw.X, redraw.Y),
-            new Size2D(redraw.Width, redraw.Height)));
+        await using var maskStream = redraw.Image.MaskFileId != null
+            ? await provider.Download(redraw.Image.MaskFileId.Value)
+            : Stream.Null;
+        var outputStream = await redrawService.Redraw(
+            inputStream,
+            maskStream,
+            redraw.Image.Name,
+            new Rectangle2D(
+                new Point2D(redraw.X, redraw.Y),
+                new Size2D(redraw.Width, redraw.Height)));
 
         var redrawFileId = await provider.Upload(outputStream);
         redraw.SetRedraw(redrawFileId);

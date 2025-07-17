@@ -179,6 +179,7 @@ public class ImageModel : PageModel
         {
             await using var maskStream = image.Mask.OpenReadStream();
             await maskStream.CopyToAsync(tempFile);
+            tempFile.Position = 0;
             maskFormatDetect = await SixLabors.ImageSharp.Image.DetectFormatAsync(tempFile);
             tempFile.Position = 0;
             var maskIdentify = await SixLabors.ImageSharp.Image.IdentifyAsync(tempFile);

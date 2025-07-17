@@ -1,6 +1,7 @@
 using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using Microsoft.Extensions.Options;
 using RdClean.Data;
 using Sail;
 using Sail.ComfyUi;
@@ -8,34 +9,31 @@ using Sail.ComfyUi.Models;
 
 namespace RdClean.Services;
 
-public class RedrawService(ComfyUiClient comfyUiClient)
+public class RedrawService(
+    ComfyUiClient comfyUiClient,
+    IOptions<RedrawServiceConfiguration> configuration,
+    ILogger<RedrawService> logger)
 {
-    public async Task<Workflow> CreateWorkflow(string inputImageName, Rectangle2D area)
-    {
-        Assembly assembly = Assembly.GetExecutingAssembly();
-        var a = assembly.GetManifestResourceNames();
-        var workflowName = (area.Width, area.Height) switch
-        {
-            (1024, 1024) => "RdClean.Services.Flows.flux_1_kontext_redraw_4_1024.json",
-            (2048, 2048) => "RdClean.Services.Flows.flux_1_kontext_redraw_4_2048.json",
-            (4096, 4096) => "RdClean.Services.Flows.flux_1_kontext_redraw_4_4096.json",
-            _ => throw new ArgumentOutOfRangeException(nameof(area), area, null)
-        };
-        await using Stream responseStream = assembly.GetManifestResourceStream(workflowName) ?? throw new InvalidOperationException();
-        var workflow = await JsonSerializer.DeserializeAsync<JsonNode>(responseStream) ?? throw new InvalidOperationException();
-
-        workflow["198"]!["inputs"]!["int"] = area.TopLeft.X;
-        workflow["199"]!["inputs"]!["int"] = area.TopLeft.Y;
-        workflow["246"]!["inputs"]!["image"] = inputImageName;
-        
-        return JsonSerializer.Deserialize<Workflow>(JsonSerializer.Serialize(workflow))!;
-    }
+    private readonly ILogger<RedrawService> logger = logger;
     
-    public async Task<Stream> Redraw(Stream imageStream, string name, Rectangle2D area)
-    {
-        var uploadResponse = await comfyUiClient.UploadImage(name, imageStream);
+    private readonly RedrawServiceConfiguration config = configuration.Value;
 
-        var workflow = await CreateWorkflow(name, area);
+    private readonly RedrawWorkflow redrawWorkflow = new RedrawWorkflowColorMask("magenta");
+    
+    public async Task<Stream> Redraw(Stream imageStream, Stream maskStream, string name, Rectangle2D area)
+    {
+        var inputs = new RedrawInputs()
+        {
+            InputImage = imageStream,
+            MaskImage = maskStream,
+            Area = area,
+        };
+        await using var preprocessedImageStream = await redrawWorkflow.PreProcessInput(inputs);
+        var uploadResponse = await comfyUiClient.UploadImage(name, preprocessedImageStream);
+
+        inputs.RewindStreams();
+        var workflow = await redrawWorkflow.CreateWorkflow(inputs, uploadResponse.Name);
+        logger.LogInformation("Workflow used: {Workflow}", JsonSerializer.Serialize(workflow));
         
         var promptResponse = await comfyUiClient.Prompt(
             new PromptRequest(
@@ -68,6 +66,8 @@ public class RedrawService(ComfyUiClient comfyUiClient)
             .SelectMany(output => output.Value.Images)
             .First(img => img.Type == "output");
 
-        return await comfyUiClient.ViewFile(resource);
+        var output = await comfyUiClient.ViewFile(resource);
+        inputs.RewindStreams();
+        return await redrawWorkflow.PostProcessOutput(inputs, output);
     }
 }
