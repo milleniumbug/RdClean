@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using RdClean.Data;
+using RdClean.Domain;
 using RdClean.Services;
 using Sail.ComfyUi;
 

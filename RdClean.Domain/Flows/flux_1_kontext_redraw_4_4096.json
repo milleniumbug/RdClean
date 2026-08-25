@@ -188,7 +188,7 @@
   },
   "193": {
     "inputs": {
-      "int": 1024
+      "int": 4096
     },
     "class_type": "Primitive integer [Crystools]",
     "_meta": {
@@ -241,7 +241,7 @@
         0
       ],
       "source": [
-        "8",
+        "238",
         0
       ]
     },
@@ -354,7 +354,7 @@
   "220": {
     "inputs": {
       "images": [
-        "8",
+        "238",
         0
       ]
     },
@@ -404,7 +404,7 @@
         0
       ],
       "source": [
-        "8",
+        "238",
         0
       ]
     },
@@ -415,7 +415,7 @@
   },
   "226": {
     "inputs": {
-      "invert": true,
+      "invert": false,
       "red": 255,
       "green": 0,
       "blue": 255,

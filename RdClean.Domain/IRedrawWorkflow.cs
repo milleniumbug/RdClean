@@ -1,0 +1,2 @@
+namespace RdClean.Domain;
+

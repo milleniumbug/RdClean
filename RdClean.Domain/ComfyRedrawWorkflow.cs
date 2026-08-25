@@ -4,9 +4,9 @@ using System.Text.Json.Nodes;
 using Sail;
 using Sail.ComfyUi.Models;
 
-namespace RdClean.Services;
+namespace RdClean.Domain;
 
-public abstract class RedrawWorkflow
+public abstract class ComfyRedrawWorkflow : IRedrawWorkflow
 {
     protected async Task<Workflow> CreateWorkflowGeneric(string textPrompt, string inputImageName, Rectangle2D area)
     {
@@ -14,9 +14,9 @@ public abstract class RedrawWorkflow
         //var a = assembly.GetManifestResourceNames();
         var workflowName = (area.Width, area.Height) switch
         {
-            (1024, 1024) => "RdClean.Services.Flows.flux_1_kontext_redraw_4_1024.json",
-            (2048, 2048) => "RdClean.Services.Flows.flux_1_kontext_redraw_4_2048.json",
-            (4096, 4096) => "RdClean.Services.Flows.flux_1_kontext_redraw_4_4096.json",
+            (1024, 1024) => "RdClean.Domain.Flows.flux_1_kontext_redraw_4_1024.json",
+            (2048, 2048) => "RdClean.Domain.Flows.flux_1_kontext_redraw_4_2048.json",
+            (4096, 4096) => "RdClean.Domain.Flows.flux_1_kontext_redraw_4_4096.json",
             _ => throw new ArgumentOutOfRangeException(nameof(area), area, null)
         };
         await using Stream responseStream = assembly.GetManifestResourceStream(workflowName) ?? throw new InvalidOperationException();
@@ -35,4 +35,13 @@ public abstract class RedrawWorkflow
     public abstract Task<Workflow> CreateWorkflow(RedrawInputs inputs, string preprocessedInputImageName);
 
     public abstract Task<Stream> PostProcessOutput(RedrawInputs inputs, Stream outputImageStream);
+}
+
+public interface IRedrawWorkflow
+{
+    Task<Stream> PreProcessInput(RedrawInputs inputs);
+
+    Task<Workflow> CreateWorkflow(RedrawInputs inputs, string preprocessedInputImageName);
+
+    Task<Stream> PostProcessOutput(RedrawInputs inputs, Stream outputImageStream);
 }

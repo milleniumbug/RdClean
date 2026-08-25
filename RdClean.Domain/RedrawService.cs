@@ -1,26 +1,18 @@
-using System.Reflection;
 using System.Text.Json;
-using System.Text.Json.Nodes;
-using Microsoft.Extensions.Options;
-using RdClean.Data;
+using Microsoft.Extensions.Logging;
 using Sail;
 using Sail.ComfyUi;
 using Sail.ComfyUi.Models;
 
-namespace RdClean.Services;
+namespace RdClean.Domain;
 
 public class RedrawService(
     ComfyUiClient comfyUiClient,
-    IOptions<RedrawServiceConfiguration> configuration,
     ILogger<RedrawService> logger)
 {
     private readonly ILogger<RedrawService> logger = logger;
-    
-    private readonly RedrawServiceConfiguration config = configuration.Value;
 
-    private readonly RedrawWorkflow redrawWorkflow = new RedrawWorkflowColorMask("magenta");
-    
-    public async Task<Stream> Redraw(Stream imageStream, Stream maskStream, string name, Rectangle2D area)
+    public async Task<Stream> Redraw(Stream imageStream, Stream? maskStream, string name, Rectangle2D area)
     {
         var inputs = new RedrawInputs()
         {
@@ -28,16 +20,17 @@ public class RedrawService(
             MaskImage = maskStream,
             Area = area,
         };
-        await using var preprocessedImageStream = await redrawWorkflow.PreProcessInput(inputs);
+        var rdWorkflow = CreateRedrawWorkflow(inputs);
+        await using var preprocessedImageStream = await rdWorkflow.PreProcessInput(inputs);
         var uploadResponse = await comfyUiClient.UploadImage(name, preprocessedImageStream);
 
         inputs.RewindStreams();
-        var workflow = await redrawWorkflow.CreateWorkflow(inputs, uploadResponse.Name);
-        logger.LogInformation("Workflow used: {Workflow}", JsonSerializer.Serialize(workflow));
+        var comfyWorkflow = await rdWorkflow.CreateWorkflow(inputs, uploadResponse.Name);
+        logger.LogInformation("Workflow used: {Workflow}", JsonSerializer.Serialize(comfyWorkflow));
         
         var promptResponse = await comfyUiClient.Prompt(
             new PromptRequest(
-                workflow));
+                comfyWorkflow));
 
         HistoryEntry promptResult;
         while (true)
@@ -68,6 +61,13 @@ public class RedrawService(
 
         var output = await comfyUiClient.ViewFile(resource);
         inputs.RewindStreams();
-        return await redrawWorkflow.PostProcessOutput(inputs, output);
+        return await rdWorkflow.PostProcessOutput(inputs, output);
+    }
+
+    private IRedrawWorkflow CreateRedrawWorkflow(RedrawInputs inputs)
+    {
+        return inputs.MaskImage != null
+            ? new RedrawWorkflowColorMask("magenta")
+            : new RedrawWorkflowRemoveText();
     }
 }

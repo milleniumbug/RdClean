@@ -1,13 +1,12 @@
-using RdClean.Extensions;
+using RdClean.Domain.Extensions;
 using Sail.ComfyUi.Models;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Formats.Png;
-using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 
-namespace RdClean.Services;
+namespace RdClean.Domain;
 
-public class RedrawWorkflowRemoveText : RedrawWorkflow
+public class RedrawWorkflowRemoveText : ComfyRedrawWorkflow
 {
     public override async Task<Stream> PreProcessInput(RedrawInputs inputs)
     {
@@ -20,7 +19,7 @@ public class RedrawWorkflowRemoveText : RedrawWorkflow
     public override async Task<Workflow> CreateWorkflow(RedrawInputs inputs, string preprocessedInputImageName)
     {
         return await CreateWorkflowGeneric(
-            "Remove the japanese text from this manga panel. Leave everything else unchanged!",
+            "Remove the japanese text from this manga panel. Keep everything else unchanged.",
             preprocessedInputImageName,
             inputs.Area);
     }
@@ -31,7 +30,7 @@ public class RedrawWorkflowRemoveText : RedrawWorkflow
     }
 }
 
-public class RedrawWorkflowColorMask : RedrawWorkflow
+public class RedrawWorkflowColorMask : ComfyRedrawWorkflow
 {
     private readonly string textPrompt;
 
@@ -45,11 +44,12 @@ public class RedrawWorkflowColorMask : RedrawWorkflow
     {
         var stream = FileExt.CreateTemporaryFile();
         var image = await Image.LoadAsync(inputs.InputImage);
-        var mask = await Image.LoadAsync(inputs.MaskImage);
-        image.Mutate(i =>
+        if (inputs.MaskImage != null)
         {
-            i.DrawImage(mask, 1.0f);
-        });
+            var mask = await Image.LoadAsync(inputs.MaskImage);
+            image.Mutate(i => { i.DrawImage(mask, 1.0f); });
+        }
+
         await image.SaveAsync(stream, PngFormat.Instance);
         stream.Position = 0;
         return stream;

@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using RdClean.Data;
+using RdClean.Domain;
 using Sail;
 
 namespace RdClean.Services;
@@ -40,15 +41,23 @@ public class RedrawTaskService(
     
     private async Task DoWork(CancellationToken cancellationToken)
     {
-        await this.semaphore.WaitAsync(TimeSpan.FromSeconds(15), cancellationToken);
+        await this.semaphore.WaitAsync(TimeSpan.FromSeconds(5), cancellationToken);
         while (true)
         {
-            using var scope = scopeFactory.CreateScope();
-            while (await DoWork(scope.ServiceProvider, cancellationToken))
+            try
             {
-                
+                using var scope = scopeFactory.CreateScope();
+                if (await DoWork(scope.ServiceProvider, cancellationToken))
+                {
+                    continue;
+                }
             }
-            await this.semaphore.WaitAsync(TimeSpan.FromHours(1), cancellationToken);
+            catch
+            {
+                await this.semaphore.WaitAsync(TimeSpan.FromMinutes(1), cancellationToken);
+                continue;
+            }
+            await this.semaphore.WaitAsync(cancellationToken);
         }
     }
 
@@ -75,7 +84,7 @@ public class RedrawTaskService(
         catch (Exception ex)
         {
             logger.LogError(ex, "An error occured during redrawing");
-            return false;
+            throw;
         }
         
         return true;
@@ -86,7 +95,7 @@ public class RedrawTaskService(
         await using var inputStream = await provider.Download(redraw.Image.FileId);
         await using var maskStream = redraw.Image.MaskFileId != null
             ? await provider.Download(redraw.Image.MaskFileId.Value)
-            : Stream.Null;
+            : null;
         var outputStream = await redrawService.Redraw(
             inputStream,
             maskStream,

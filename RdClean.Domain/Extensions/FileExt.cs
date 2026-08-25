@@ -1,4 +1,4 @@
-namespace RdClean.Extensions;
+namespace RdClean.Domain.Extensions;
 
 public class FileExt
 {

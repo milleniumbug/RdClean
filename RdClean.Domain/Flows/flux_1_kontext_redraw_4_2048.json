@@ -415,7 +415,7 @@
   },
   "226": {
     "inputs": {
-      "invert": true,
+      "invert": false,
       "red": 255,
       "green": 0,
       "blue": 255,
